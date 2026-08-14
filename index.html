@@ -139,6 +139,9 @@
     <span class="name">COMEBACK</span>
     <span class="kick"><span id="kickdate"></span> <button id="gear" aria-label="Settings">⚙︎</button></span>
   </div>
+  <button id="newsbanner" style="display:none;width:100%;text-align:left;background:var(--card);
+    border:1px solid var(--ring);border-radius:12px;padding:10px 13px;margin-top:12px;
+    font-size:12.5px;color:var(--ink2)"></button>
 
   <!-- TODAY -->
   <section class="view on" id="v-today">
@@ -146,6 +149,7 @@
       <div class="n tnum" id="heron"></div>
       <div class="l" id="herol"></div>
     </div>
+    <div class="cardbox" id="activity" style="display:none;margin-top:22px;padding:9px 15px"></div>
     <div class="dots" id="dots"></div>
     <div class="streakcap" id="streakcap"></div>
     <div class="ydy cardbox" id="ydy"></div>
@@ -181,6 +185,7 @@
     <div class="spark cardbox" id="spark"></div>
     <div class="sec">MONTH LEDGER</div>
     <table class="tnum" id="ledger"></table>
+    <div class="nextq" id="reconline"></div>
     <div class="count" style="margin-top:auto">
       <button id="countbtn2" style="display:block;width:100%">
         <div class="a" id="counta2"></div>
@@ -203,6 +208,7 @@
   <h3 id="closetitle">Close the day</h3>
   <div class="sub">Everyday spending only — bills, debt payments and transfers don't count.</div>
   <input id="amt" type="text" inputmode="decimal" placeholder="$ what did today cost?">
+  <div class="fine" id="prefillhint" style="display:none;text-align:left;margin:6px 2px 0">Pre-filled from your screenshots — edit if it's off.</div>
   <div class="rowline"><span>Planned splurge <span class="mut" style="font-size:11px">(declared fun — streak survives)</span></span><div class="tog" id="splurge"></div></div>
   <div class="scorebig" id="closepreview" style="display:none"></div>
   <button class="closebtn" id="doclose" style="margin-top:14px">Close the day</button>
@@ -228,13 +234,31 @@
   <div class="rowline"><span>Daily number</span>
     <span class="stepper"><button id="dn-dn">−</button><b class="tnum" id="dn-val"></b><button id="dn-up">+</button></span></div>
   <div class="rowline"><span>Ask passcode every open</span><div class="tog" id="askpw"></div></div>
+  <div class="rowline"><button id="verbtn" style="color:var(--accent);font-size:13.5px;padding:0">Version &amp; what's new</button><span class="mut tnum" style="font-size:12px" id="vernow"></span></div>
   <div class="rowline"><button id="exportbtn" style="color:var(--accent);font-size:13.5px;padding:0">Copy game state (backup)</button><span></span></div>
   <div class="rowline"><button id="forget" style="color:var(--crit);font-size:13.5px;padding:0">Forget passcode on this phone</button><span></span></div>
   <div class="fine" id="dataasof"></div>
 </div>
 
+<!-- CHANGELOG SHEET -->
+<div class="sheet" id="sh-log" style="max-height:72vh;overflow-y:auto">
+  <h3>Version history</h3>
+  <div class="sub" id="logrecon"></div>
+  <div id="logbody"></div>
+</div>
+
 <script>
 'use strict';
+const APP_VERSION = '0.2.0';
+const CHANGELOG = [
+  {v:'0.2.0', d:'2026-08-14', notes:[
+    'Daily activity feed: charges parsed from your screenshots appear on Today, marked provisional until statements confirm them.',
+    'Close the day pre-fills from that activity — confirm, don’t type.',
+    'Version history (this sheet) + update banners so you can tell when the app or the numbers changed.',
+    '"Confirmed through" line on Progress — provisional vs statement-confirmed, always visible.']},
+  {v:'0.1.0', d:'2026-08-14', notes:[
+    'First build: passcode-locked encrypted data, streaks with freezes, planned splurges, day score, Shield + bosses, freedom-date simulator, week rings, month ledger.']}
+];
 /* ---------- tiny utils ---------- */
 const $ = s => document.querySelector(s);
 const LS = {
@@ -345,6 +369,9 @@ function ring(score, size, color){
   </svg>`;
 }
 
+function actToday(){
+  return (DATA.recent_activity || []).filter(a => a.d === todayStr());
+}
 function renderToday(){
   const closes = LS.get('closes', {});
   const t = timeline();
@@ -352,6 +379,18 @@ function renderToday(){
   const dn = dailyNumber();
   const d = new Date();
   $('#kickdate').textContent = d.toLocaleDateString('en-US', {weekday:'short', month:'short', day:'numeric'}).toUpperCase();
+  // provisional activity feed (from screenshots, via Claude)
+  const acts = actToday();
+  if (acts.length){
+    const tot = acts.reduce((s,a) => s + a.amt, 0);
+    $('#activity').style.display = 'block';
+    $('#activity').innerHTML =
+      `<div style="display:flex;justify-content:space-between;font-size:10.5px;letter-spacing:1.4px;color:var(--muted);font-weight:600;padding:4px 0 2px"><span>TODAY SO FAR</span><span>PROVISIONAL</span></div>` +
+      acts.map(a => `<div style="display:flex;justify-content:space-between;font-size:13px;padding:7px 0;border-bottom:1px solid var(--grid)">
+        <span>${a.m}<span class="mut" style="font-size:10.5px;margin-left:7px">${a.acct || ''}</span></span>
+        <span class="tnum" style="color:var(--ink2)">${fmt$2(a.amt)}</span></div>`).join('') +
+      `<div style="display:flex;justify-content:space-between;font-size:13px;font-weight:650;padding:8px 0 4px"><span>So far</span><span class="tnum">${fmt$2(tot)} of ${fmt$(dn)}</span></div>`;
+  } else $('#activity').style.display = 'none';
   if (tc){
     const sc = scoreOf(tc), g = isGreenClose(tc);
     $('#heron').textContent = sc;
@@ -462,6 +501,10 @@ function renderProg(){
       <td>${cu === null ? '—' : Math.round(cu).toLocaleString()}</td></tr>`;
   }
   $('#ledger').innerHTML = rows;
+  const ract = DATA.recent_activity || [];
+  $('#reconline').textContent = 'Confirmed through ' + (DATA.reconciled_through || DATA.asof).replace(' statements','') +
+    ' statements' + (ract.length ? ` · ${ract.length} provisional charge${ract.length === 1 ? '' : 's'} awaiting confirmation` :
+    ' · daily activity is provisional until statements land');
 }
 
 function renderAll(){ renderToday(); renderQuest(); renderProg(); }
@@ -491,7 +534,10 @@ $('#splurge').addEventListener('click', () => { splurgeOn = !splurgeOn; $('#splu
 $('#openclose').addEventListener('click', () => {
   const tc = LS.get('closes', {})[todayStr()];
   $('#closetitle').textContent = tc ? 'Edit today' : 'Close the day';
-  $('#amt').value = tc ? tc.amt : '';
+  const acts = actToday();
+  const pre = !tc && acts.length ? acts.reduce((s,a) => s + a.amt, 0) : null;
+  $('#amt').value = tc ? tc.amt : (pre !== null ? pre.toFixed(2) : '');
+  $('#prefillhint').style.display = (!tc && pre !== null) ? 'block' : 'none';
   splurgeOn = !!(tc && tc.splurge); $('#splurge').classList.toggle('on', splurgeOn);
   updPreview(); openSheet('#sh-close');
 });
@@ -524,7 +570,20 @@ function renderSet(){
     ? 'Daily number is the placeholder — it gets computed from July–August statements.'
     : 'Daily number set by you. It renegotiates as bosses die.';
   $('#askpw').classList.toggle('on', !!LS.get('askpw', false));
-  $('#dataasof').textContent = 'Data: ' + DATA.asof + ' · built ' + DATA.built + ' · Comeback v0.1';
+  $('#vernow').textContent = 'v' + APP_VERSION;
+  $('#dataasof').textContent = 'Data: ' + DATA.asof + ' · built ' + DATA.built + ' · Comeback v' + APP_VERSION;
+}
+function renderLog(){
+  $('#logrecon').textContent = 'Numbers confirmed through ' + (DATA.reconciled_through || DATA.asof).replace(' statements','') +
+    ' statements · current data built ' + DATA.built;
+  const notes = (DATA.data_notes || []).map(n =>
+    `<div class="rowline" style="align-items:flex-start"><span class="mut tnum" style="font-size:12px;min-width:86px">${n.d}</span><span style="font-size:12.5px;color:var(--ink2);text-align:left;flex:1;margin-left:10px">${n.note}</span></div>`).join('');
+  const vers = CHANGELOG.map(c =>
+    `<div style="margin:14px 0 4px;font-size:13.5px;font-weight:650">v${c.v} <span class="mut tnum" style="font-weight:400;font-size:11.5px">· ${c.d}</span></div>` +
+    c.notes.map(x => `<div style="font-size:12.5px;color:var(--ink2);padding:3px 0 3px 12px;border-left:2px solid var(--grid);margin:3px 0">${x}</div>`).join('')).join('');
+  $('#logbody').innerHTML =
+    `<div class="sec" style="margin-top:6px">APP VERSIONS</div>` + vers +
+    ((DATA.data_notes || []).length ? `<div class="sec">DATA UPDATES</div>` + notes : '');
 }
 $('#dn-up').addEventListener('click', () => { LS.set('daily', dailyNumber() + 5); renderSet(); renderAll(); });
 $('#dn-dn').addEventListener('click', () => { LS.set('daily', Math.max(5, dailyNumber() - 5)); renderSet(); renderAll(); });
@@ -537,6 +596,22 @@ $('#exportbtn').addEventListener('click', async () => {
   catch(e){ prompt('Copy this:', blob); }
 });
 $('#gear').addEventListener('click', () => { renderSet(); openSheet('#sh-set'); });
+$('#verbtn').addEventListener('click', () => { closeSheets(); renderLog(); openSheet('#sh-log'); });
+$('#newsbanner').addEventListener('click', () => { $('#newsbanner').style.display = 'none'; renderLog(); openSheet('#sh-log'); });
+function showNews(){
+  const lastv = LS.get('lastv', null), lastb = LS.get('lastbuilt', null);
+  let msg = null;
+  if (lastv !== APP_VERSION){
+    msg = lastv === null ? null : `Updated to v${APP_VERSION} — tap for what's new`;
+    LS.set('lastv', APP_VERSION);
+  }
+  if (!msg && DATA.built && lastb !== DATA.built){
+    const n = (DATA.data_notes || [])[0];
+    if (lastb !== null) msg = `Numbers refreshed ${DATA.built}` + (n ? ` — ${n.note}` : '') + ' · tap for history';
+    LS.set('lastbuilt', DATA.built);
+  }
+  if (msg){ $('#newsbanner').textContent = msg; $('#newsbanner').style.display = 'block'; }
+}
 
 /* tabs */
 document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => {
@@ -582,6 +657,7 @@ function start(){
   $('#boot').style.display = 'none';
   $('#app').style.display = 'flex';
   renderAll();
+  showNews();
 }
 boot();
 if ('serviceWorker' in navigator && location.protocol === 'https:')
