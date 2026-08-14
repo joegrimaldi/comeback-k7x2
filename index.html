@@ -154,6 +154,9 @@
     <div class="streakcap" id="streakcap"></div>
     <div class="ydy cardbox" id="ydy"></div>
     <button class="closebtn" id="openclose"></button>
+    <a id="syncbtn" href="shortcuts://run-shortcut?name=Comeback%20Sync"
+       style="display:block;text-align:center;font-size:12.5px;color:var(--muted);
+              padding:14px 0 0;text-decoration:none">⟳ Sync screenshots</a>
     <div class="count">
       <button id="countbtn" style="display:block;width:100%">
         <div class="a" id="counta"></div>
@@ -249,8 +252,11 @@
 
 <script>
 'use strict';
-const APP_VERSION = '0.2.0';
+const APP_VERSION = '0.2.1';
 const CHANGELOG = [
+  {v:'0.2.1', d:'2026-08-14', notes:[
+    'Sync button on Today — tap it after adding screenshots to the Comeback album; it runs the Comeback Sync shortcut and the app refreshes itself within ~5 minutes.',
+    'The Mac now checks for synced screenshots every few minutes instead of once at night — the ritual runs on your rhythm, not a schedule.']},
   {v:'0.2.0', d:'2026-08-14', notes:[
     'Daily activity feed: charges parsed from your screenshots appear on Today, marked provisional until statements confirm them.',
     'Close the day pre-fills from that activity — confirm, don’t type.',
