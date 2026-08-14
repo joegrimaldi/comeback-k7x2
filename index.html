@@ -1,0 +1,590 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Comeback">
+<meta name="theme-color" content="#0d0d0d">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-180.png">
+<title>Comeback</title>
+<style>
+  :root{
+    color-scheme:dark;
+    --page:#0d0d0d; --surface:#1a1a19; --card:#212120;
+    --ink:#fff; --ink2:#c3c2b7; --muted:#898781;
+    --grid:#2c2c2a; --line:#383835; --ring:rgba(255,255,255,.10);
+    --accent:#3987e5; --good:#0ca30c; --warn:#fab219; --serious:#ec835a; --crit:#d03b3b;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{background:var(--page);color:var(--ink);
+    font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+    padding-top:env(safe-area-inset-top)}
+  .tnum{font-variant-numeric:tabular-nums}
+  .goodtx{color:var(--good)} .badtx{color:var(--crit)} .mut{color:var(--muted)}
+  button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+  input{font:inherit;color:var(--ink);background:var(--card);border:1px solid var(--line);
+    border-radius:10px;padding:10px 12px;width:100%;outline:none}
+  input:focus{border-color:var(--accent)}
+  /* layout */
+  #app{max-width:520px;margin:0 auto;min-height:100%;display:flex;flex-direction:column;
+    padding:6px 20px calc(76px + env(safe-area-inset-bottom))}
+  .apphead{display:flex;justify-content:space-between;align-items:baseline;margin:14px 2px 0}
+  .apphead .name{font-size:11px;letter-spacing:2.6px;color:var(--muted);font-weight:600}
+  .apphead .kick{font-size:11px;color:var(--muted)}
+  .apphead .kick button{color:var(--muted);font-size:11px;padding:4px}
+  .tabs{position:fixed;left:0;right:0;bottom:0;display:flex;background:rgba(13,13,13,.92);
+    -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+    border-top:1px solid var(--grid);padding:10px 0 calc(10px + env(safe-area-inset-bottom))}
+  .tabs button{flex:1;text-align:center;font-size:12px;color:var(--muted);padding:5px 0}
+  .tabs button.on{color:var(--ink);font-weight:650}
+  .cardbox{background:var(--card);border:1px solid var(--ring);border-radius:16px;padding:13px 15px}
+  .sec{font-size:11px;letter-spacing:1.8px;color:var(--muted);font-weight:600;margin:20px 2px 8px}
+  .view{display:none;flex:1;flex-direction:column}
+  .view.on{display:flex}
+  /* today */
+  .hero{margin:44px 0 4px;text-align:center}
+  .hero .n{font-size:62px;font-weight:700;letter-spacing:-1.5px;line-height:1}
+  .hero .l{font-size:13px;color:var(--ink2);margin-top:8px}
+  .hero .l em{font-style:normal;color:var(--muted)}
+  .dots{display:flex;gap:9px;justify-content:center;margin:30px 0 8px}
+  .dot{width:15px;height:15px;border-radius:50%;background:var(--grid)}
+  .dot.G{background:var(--good)} .dot.F{background:var(--accent)}
+  .dot.R{background:var(--crit)} .dot.T{background:none;border:1.5px solid var(--muted)}
+  .streakcap{font-size:12.5px;color:var(--ink2);text-align:center}
+  .ydy{display:flex;align-items:center;gap:12px;margin-top:26px}
+  .ydy .a{font-size:13.5px;font-weight:600}
+  .ydy .b{font-size:12px;color:var(--ink2);margin-top:2px}
+  .closebtn{margin-top:22px;background:var(--accent);color:#fff;border-radius:12px;width:100%;
+    font-size:14.5px;font-weight:650;padding:13px}
+  .closebtn.done{background:var(--card);border:1px solid var(--ring);color:var(--ink2);font-weight:500}
+  .count{margin-top:auto;text-align:center;padding:22px 0 8px}
+  .count .a{font-size:16px;font-weight:650}
+  .count .b{font-size:12.5px;margin-top:4px}
+  /* quest */
+  .meter{height:12px;background:var(--grid);border-radius:6px;overflow:hidden}
+  .meter i{display:block;height:100%;background:var(--accent);border-radius:6px 0 0 6px}
+  .shield .top{display:flex;justify-content:space-between;font-size:13px;margin-bottom:8px}
+  .shield .sub{font-size:12px;color:var(--ink2);margin-top:8px}
+  .boss{margin-bottom:12px}
+  .boss .l1{display:flex;justify-content:space-between;align-items:baseline;font-size:13.5px;margin-bottom:6px}
+  .boss .nm{font-weight:650}
+  .boss .apr{font-size:11px;color:var(--muted);margin-left:7px}
+  .boss .bal{font-weight:650}
+  .boss .l2{display:flex;justify-content:space-between;gap:10px;font-size:11.5px;color:var(--muted);margin-top:5px}
+  .hp{height:9px;background:var(--grid);border-radius:5px;overflow:hidden}
+  .hp i{display:block;height:100%;border-radius:5px}
+  .stack{display:flex;justify-content:space-between;font-size:12.5px;color:var(--ink2);
+    border-top:1px solid var(--grid);padding-top:10px;margin-top:4px}
+  .nextq{font-size:12px;color:var(--muted);margin-top:8px}
+  /* progress */
+  .weekrings{display:flex;justify-content:space-between;margin-top:6px;padding:0 2px}
+  .wr{text-align:center}
+  .wr .d{font-size:10px;color:var(--muted);margin-top:4px}
+  .spark .t{display:flex;justify-content:space-between;font-size:12.5px;color:var(--ink2);margin-bottom:6px}
+  .spark .x{display:flex;justify-content:space-between;font-size:10.5px;color:var(--muted)}
+  table{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:6px}
+  th{font-size:10.5px;letter-spacing:1px;color:var(--muted);text-align:right;font-weight:600;
+    padding:6px 2px;border-bottom:1px solid var(--line)}
+  th:first-child,td:first-child{text-align:left}
+  td{text-align:right;padding:7.5px 2px;border-bottom:1px solid var(--grid);color:var(--ink2)}
+  td.k{color:var(--ink)}
+  /* sheets */
+  .scrim{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;z-index:8}
+  .sheet{position:fixed;left:0;right:0;bottom:0;z-index:9;background:var(--surface);
+    border-radius:20px 20px 0 0;border-top:1px solid var(--ring);max-width:520px;margin:0 auto;
+    padding:20px 22px calc(22px + env(safe-area-inset-bottom));display:none}
+  .sheet.on,.scrim.on{display:block}
+  .sheet h3{font-size:15px;font-weight:650;margin-bottom:4px}
+  .sheet .sub{font-size:12.5px;color:var(--ink2);margin-bottom:14px}
+  .rowline{display:flex;justify-content:space-between;align-items:center;padding:11px 0;
+    border-bottom:1px solid var(--grid);font-size:13.5px}
+  .rowline:last-of-type{border-bottom:none}
+  .tog{width:46px;height:27px;border-radius:14px;background:var(--grid);position:relative;transition:.15s}
+  .tog::after{content:"";position:absolute;top:3px;left:3px;width:21px;height:21px;border-radius:50%;
+    background:var(--muted);transition:.15s}
+  .tog.on{background:var(--good)} .tog.on::after{left:22px;background:#fff}
+  .stepper{display:flex;align-items:center;gap:14px}
+  .stepper button{width:34px;height:34px;border:1px solid var(--line);border-radius:9px;font-size:18px;color:var(--ink2)}
+  .scorebig{display:flex;align-items:center;gap:16px;justify-content:center;margin:8px 0 4px}
+  .coach{font-size:13px;color:var(--ink2);text-align:center;margin-top:8px}
+  .fine{font-size:11px;color:var(--muted);text-align:center;margin-top:10px}
+  /* gate */
+  #gate{position:fixed;inset:0;background:var(--page);z-index:20;display:none;
+    flex-direction:column;justify-content:center;padding:0 34px;max-width:520px;margin:0 auto}
+  #gate.on{display:flex}
+  #gate .name{font-size:13px;letter-spacing:3px;color:var(--muted);font-weight:600;text-align:center;margin-bottom:26px}
+  #gate .err{font-size:12.5px;color:var(--crit);text-align:center;margin-top:12px;min-height:16px}
+  #gate button.go{margin-top:14px;background:var(--accent);color:#fff;border-radius:12px;padding:13px;font-weight:650;width:100%}
+  #boot{position:fixed;inset:0;background:var(--page);z-index:15;display:flex;align-items:center;
+    justify-content:center;color:var(--muted);font-size:13px}
+</style></head>
+<body>
+
+<div id="boot">…</div>
+
+<div id="gate">
+  <div class="name">COMEBACK</div>
+  <input id="pw" type="password" inputmode="text" autocomplete="current-password" placeholder="passcode">
+  <div class="rowline" style="border:none;padding:12px 2px 0"><span class="mut" style="font-size:12.5px">Remember on this phone</span><div class="tog on" id="remember"></div></div>
+  <button class="go" id="unlock">Unlock</button>
+  <div class="err" id="gateerr"></div>
+</div>
+
+<div id="app" style="display:none">
+  <div class="apphead">
+    <span class="name">COMEBACK</span>
+    <span class="kick"><span id="kickdate"></span> <button id="gear" aria-label="Settings">⚙︎</button></span>
+  </div>
+
+  <!-- TODAY -->
+  <section class="view on" id="v-today">
+    <div class="hero">
+      <div class="n tnum" id="heron"></div>
+      <div class="l" id="herol"></div>
+    </div>
+    <div class="dots" id="dots"></div>
+    <div class="streakcap" id="streakcap"></div>
+    <div class="ydy cardbox" id="ydy"></div>
+    <button class="closebtn" id="openclose"></button>
+    <div class="count">
+      <button id="countbtn" style="display:block;width:100%">
+        <div class="a" id="counta"></div>
+        <div class="b" id="countb"></div>
+      </button>
+    </div>
+  </section>
+
+  <!-- QUEST -->
+  <section class="view" id="v-quest">
+    <div class="sec">SHIELD — CASH FLOOR</div>
+    <div class="cardbox shield">
+      <div class="top"><b class="tnum" id="sh-now"></b><span class="mut tnum" id="sh-floor"></span></div>
+      <div class="meter"><i id="sh-fill"></i></div>
+      <div class="sub tnum" id="sh-sub"></div>
+    </div>
+    <div class="sec">BOSSES — AVALANCHE ORDER</div>
+    <div id="bosses"></div>
+    <div class="stack" id="stackrow"></div>
+    <div class="nextq" id="waiting"></div>
+    <div class="cardbox" style="margin-top:auto;font-size:12.5px;color:var(--ink2)" id="windfall"></div>
+  </section>
+
+  <!-- PROGRESS -->
+  <section class="view" id="v-prog">
+    <div class="sec">THIS WEEK</div>
+    <div class="weekrings" id="rings"></div>
+    <div class="sec">CARD STACK</div>
+    <div class="spark cardbox" id="spark"></div>
+    <div class="sec">MONTH LEDGER</div>
+    <table class="tnum" id="ledger"></table>
+    <div class="count" style="margin-top:auto">
+      <button id="countbtn2" style="display:block;width:100%">
+        <div class="a" id="counta2"></div>
+        <div class="b mut" id="countb2"></div>
+      </button>
+    </div>
+  </section>
+
+  <div class="tabs">
+    <button data-v="today" class="on">Today</button>
+    <button data-v="quest">Quest</button>
+    <button data-v="prog">Progress</button>
+  </div>
+</div>
+
+<div class="scrim" id="scrim"></div>
+
+<!-- CLOSE SHEET -->
+<div class="sheet" id="sh-close">
+  <h3 id="closetitle">Close the day</h3>
+  <div class="sub">Everyday spending only — bills, debt payments and transfers don't count.</div>
+  <input id="amt" type="text" inputmode="decimal" placeholder="$ what did today cost?">
+  <div class="rowline"><span>Planned splurge <span class="mut" style="font-size:11px">(declared fun — streak survives)</span></span><div class="tog" id="splurge"></div></div>
+  <div class="scorebig" id="closepreview" style="display:none"></div>
+  <button class="closebtn" id="doclose" style="margin-top:14px">Close the day</button>
+  <div class="fine">Unclosed days lock red at midnight — a banked freeze spends itself first.</div>
+</div>
+
+<!-- ASSUMPTIONS SHEET -->
+<div class="sheet" id="sh-sim">
+  <h3>Freedom date — assumptions</h3>
+  <div class="sub" id="simnote"></div>
+  <div class="rowline"><span>Extra to debt / month</span>
+    <span class="stepper"><button id="ex-dn">−</button><b class="tnum" id="ex-val"></b><button id="ex-up">+</button></span></div>
+  <div class="rowline"><span>Debt-free (non-mortgage)</span><b class="tnum" id="sim-date"></b></div>
+  <div class="rowline"><span>Lifetime interest</span><b class="tnum" id="sim-int"></b></div>
+  <div class="fine">Avalanche order · freed minimums roll over · mortgage keeps its own schedule.<br>
+  Rule 1 still applies: extra dollars exist only when the shield is at $11,111.11.</div>
+</div>
+
+<!-- SETTINGS SHEET -->
+<div class="sheet" id="sh-set">
+  <h3>Settings</h3>
+  <div class="sub" id="setnote"></div>
+  <div class="rowline"><span>Daily number</span>
+    <span class="stepper"><button id="dn-dn">−</button><b class="tnum" id="dn-val"></b><button id="dn-up">+</button></span></div>
+  <div class="rowline"><span>Ask passcode every open</span><div class="tog" id="askpw"></div></div>
+  <div class="rowline"><button id="exportbtn" style="color:var(--accent);font-size:13.5px;padding:0">Copy game state (backup)</button><span></span></div>
+  <div class="rowline"><button id="forget" style="color:var(--crit);font-size:13.5px;padding:0">Forget passcode on this phone</button><span></span></div>
+  <div class="fine" id="dataasof"></div>
+</div>
+
+<script>
+'use strict';
+/* ---------- tiny utils ---------- */
+const $ = s => document.querySelector(s);
+const LS = {
+  get(k, d){ try{ const v = localStorage.getItem('cb.'+k); return v===null? d : JSON.parse(v);}catch(e){return d} },
+  set(k, v){ try{ localStorage.setItem('cb.'+k, JSON.stringify(v)); }catch(e){} },
+  del(k){ try{ localStorage.removeItem('cb.'+k); }catch(e){} }
+};
+const fmt$ = n => '$' + Math.round(n).toLocaleString('en-US');
+const fmt$2 = n => '$' + n.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+const todayStr = () => { const d = new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); };
+const addDays = (s, n) => { const d = new Date(s+'T12:00:00'); d.setDate(d.getDate()+n);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); };
+const dow = s => ['S','M','T','W','T','F','S'][new Date(s+'T12:00:00').getDay()];
+
+/* ---------- crypto ---------- */
+const b64d = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+async function decryptBlob(blob, pass){
+  const km = await crypto.subtle.importKey('raw', new TextEncoder().encode(pass), 'PBKDF2', false, ['deriveKey']);
+  const key = await crypto.subtle.deriveKey(
+    {name:'PBKDF2', salt:b64d(blob.salt), iterations:blob.iter, hash:'SHA-256'},
+    km, {name:'AES-GCM', length:256}, false, ['decrypt']);
+  const pt = await crypto.subtle.decrypt({name:'AES-GCM', iv:b64d(blob.iv)}, key, b64d(blob.ct));
+  return JSON.parse(new TextDecoder().decode(pt));
+}
+
+/* ---------- game engine (pure derivations from closes) ---------- */
+let DATA = null;
+const dailyNumber = () => LS.get('daily', null) ?? (DATA ? DATA.daily.number : 130);
+const dailyIsProvisional = () => LS.get('daily', null) === null && DATA && DATA.daily.provisional;
+
+function isGreenClose(c){ return c.splurge || c.amt <= dailyNumber(); }
+function scoreOf(c){
+  const dn = dailyNumber();
+  if (c.splurge) return 75;
+  if (c.amt <= dn) return Math.round(80 + 20 * (1 - c.amt/Math.max(dn,1)));
+  return Math.max(10, Math.round(80 - 100 * (c.amt - dn)/Math.max(dn,1)));
+}
+// timeline: array of {date, state:'G'|'R'|'F', score} for every day from first close → yesterday
+function timeline(){
+  const closes = LS.get('closes', {});
+  const dates = Object.keys(closes).sort();
+  const out = []; let bank = 0, run = 0;
+  if (!dates.length) return {days:out, bank:0, streak:0};
+  const yday = addDays(todayStr(), -1);
+  for (let d = dates[0]; d <= yday; d = addDays(d, 1)){
+    let st, sc = 0;
+    const c = closes[d];
+    if (c){ st = isGreenClose(c) ? 'G' : 'R'; sc = scoreOf(c); }
+    else if (bank > 0){ bank--; st = 'F'; sc = 60; }
+    else { st = 'R'; sc = 0; }
+    if (st !== 'R'){ run++; if (run % 7 === 0 && bank < 2) bank++; } else run = 0;
+    out.push({date:d, state:st, score:sc});
+  }
+  // streak = trailing non-red run (today's close extends it live)
+  let streak = 0;
+  for (let i = out.length-1; i >= 0 && out[i].state !== 'R'; i--) streak++;
+  const tc = closes[todayStr()];
+  if (tc && isGreenClose(tc)) streak++;
+  return {days:out, bank, streak};
+}
+
+/* ---------- payoff sim (mirrors engine reference — verified vs Python) ---------- */
+function simPayoff(extra){
+  const ds = DATA.debts.filter(d => d.name !== 'Mortgage').map(d => ({...d}));
+  const budget = ds.reduce((s,d) => s+d.pay, 0) + extra;
+  let months = 0, interest = 0;
+  while (ds.some(d => d.bal > 0.005) && months < 1200){
+    months++;
+    for (const d of ds) if (d.bal > 0){ const i = d.bal*d.rate/100/12; d.bal += i; interest += i; }
+    let pool = budget;
+    for (const d of ds) if (d.bal > 0){ const p = Math.min(d.pay, d.bal, pool); d.bal -= p; pool -= p; }
+    for (const d of [...ds].sort((a,b) => b.rate-a.rate)){
+      if (pool <= 0) break;
+      if (d.bal > 0){ const p = Math.min(pool, d.bal); d.bal -= p; pool -= p; }
+    }
+  }
+  const [sy, sm] = DATA.sim.start.split('-').map(Number);
+  let m = sm + months, y = sy + Math.floor((m-1)/12); m = (m-1)%12+1;
+  const MN = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return {months, interest, label: MN[m-1]+' '+y};
+}
+
+/* ---------- rendering ---------- */
+function coachLine(){
+  const closes = LS.get('closes', {});
+  const y = closes[addDays(todayStr(), -1)];
+  if (!y){
+    const t = timeline();
+    const last = t.days[t.days.length-1];
+    if (!last) return ['No days closed yet', 'Tonight is close #1.'];
+    if (last.state === 'F') return ['Yesterday · freeze spent', 'Streak lives. Close tonight.'];
+    return ['Yesterday · went red', 'Unclosed at midnight. Clean sheet today.'];
+  }
+  const dn = dailyNumber(), diff = Math.round(Math.abs(dn - y.amt));
+  if (y.splurge) return ['Yesterday · planned splurge', 'Declared in daylight. Streak lives.'];
+  if (y.amt <= dn) return ['Yesterday · green', fmt$(diff)+' under. Boring win. Take it.'];
+  return ['Yesterday · red', fmt$(diff)+' over. Today is a clean sheet.'];
+}
+function ring(score, size, color){
+  const r = size === 'big' ? 35 : (size === 'mid' ? 21 : 13);
+  const w = size === 'big' ? 7 : (size === 'mid' ? 5 : 4);
+  const box = 2*(r+w), C = 2*Math.PI*r, f = Math.max(0.04, Math.min(1, score/100));
+  return `<svg width="${box}" height="${box}" viewBox="0 0 ${box} ${box}">
+    <circle cx="${box/2}" cy="${box/2}" r="${r}" fill="none" stroke="var(--grid)" stroke-width="${w}"/>
+    <circle cx="${box/2}" cy="${box/2}" r="${r}" fill="none" stroke="${color}" stroke-width="${w}"
+      stroke-linecap="round" stroke-dasharray="${(C*f).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 ${box/2} ${box/2})"/>
+    ${size !== 'small' ? `<text x="${box/2}" y="${box/2+ (size==='big'?7:5)}" text-anchor="middle" font-size="${size==='big'?24:15}" font-weight="700" fill="var(--ink)">${score}</text>` : ''}
+  </svg>`;
+}
+
+function renderToday(){
+  const closes = LS.get('closes', {});
+  const t = timeline();
+  const tc = closes[todayStr()];
+  const dn = dailyNumber();
+  const d = new Date();
+  $('#kickdate').textContent = d.toLocaleDateString('en-US', {weekday:'short', month:'short', day:'numeric'}).toUpperCase();
+  if (tc){
+    const sc = scoreOf(tc), g = isGreenClose(tc);
+    $('#heron').textContent = sc;
+    $('#heron').style.color = g ? 'var(--good)' : 'var(--crit)';
+    $('#herol').innerHTML = (g ? 'green day' : 'red day') + ' · ' + fmt$(tc.amt) + ' of ' + fmt$(dn) + (tc.splurge ? ' <em>· splurge</em>' : '');
+    $('#openclose').textContent = 'Edit today';
+    $('#openclose').className = 'closebtn done';
+  } else {
+    $('#heron').textContent = fmt$(dn);
+    $('#heron').style.color = 'var(--ink)';
+    $('#herol').innerHTML = 'to spend today' + (dailyIsProvisional() ? ' <em>· provisional</em>' : '');
+    $('#openclose').textContent = 'Close the day';
+    $('#openclose').className = 'closebtn';
+  }
+  // dots: last 6 days + today
+  const last6 = t.days.slice(-6);
+  let dots = '';
+  for (let i = 0; i < 6 - last6.length; i++) dots += '<span class="dot"></span>';
+  for (const day of last6) dots += `<span class="dot ${day.state}"></span>`;
+  dots += tc ? `<span class="dot ${isGreenClose(tc) ? 'G' : 'R'}"></span>` : '<span class="dot T"></span>';
+  $('#dots').innerHTML = dots;
+  $('#streakcap').textContent = t.streak
+    ? `${t.streak}-day streak · ${t.bank} freeze${t.bank === 1 ? '' : 's'} banked`
+    : 'No streak yet — tonight starts one';
+  const [a, b] = coachLine();
+  const yd = closes[addDays(todayStr(), -1)];
+  const ysc = yd ? scoreOf(yd) : (t.days.length ? t.days[t.days.length-1].score : 0);
+  const ycol = yd ? (isGreenClose(yd) ? 'var(--good)' : 'var(--crit)')
+                  : (t.days.length && t.days[t.days.length-1].state === 'F' ? 'var(--accent)' : 'var(--crit)');
+  $('#ydy').innerHTML = (t.days.length || yd ? ring(ysc, 'mid', ycol) : ring(0, 'mid', 'var(--grid)')) +
+    `<div><div class="a">${a}</div><div class="b">${b}</div></div>`;
+  const extra = LS.get('extra', 0), s = simPayoff(extra);
+  const lab = extra > 0 ? ` · at +${fmt$(extra)}/mo` : ' · at minimums';
+  $('#counta').innerHTML = 'Debt-free <span class="tnum">' + s.label + '</span>';
+  $('#countb').innerHTML = `<span class="mut">${lab.slice(3)} · tap for the levers</span>`;
+  $('#counta2').innerHTML = $('#counta').innerHTML;
+  $('#countb2').textContent = 'recomputed on every sync · tap for assumptions';
+}
+
+function renderQuest(){
+  const D = DATA, cush = D.cushion.total, gap = Math.max(0, D.floor - cush);
+  $('#sh-now').textContent = fmt$(cush);
+  $('#sh-floor').textContent = fmt$2(D.floor);
+  $('#sh-fill').style.width = Math.min(100, cush/D.floor*100).toFixed(1) + '%';
+  $('#sh-sub').textContent = gap > 0
+    ? fmt$(gap) + ' to go · below the line, every extra dollar lands here first'
+    : 'Shield full — extra dollars now hit the top boss';
+  const cols = {1:'var(--crit)', 2:'var(--serious)', 3:'var(--warn)'};
+  let html = '', stack = 0, bleed = 0;
+  D.bosses.forEach((name, i) => {
+    const d = D.debts.find(x => x.name === name);
+    const peak = D.boss_peaks[name] || d.bal;
+    const reg = d.bal*d.rate/100/12;
+    stack += d.bal; bleed += reg;
+    html += `<div class="boss">
+      <div class="l1"><span><span class="nm">${name}</span><span class="apr tnum">${d.rate.toFixed(1)}%</span></span>
+        <span class="bal tnum">${fmt$(d.bal)}</span></div>
+      <div class="hp"><i style="width:${Math.min(100, d.bal/peak*100).toFixed(0)}%;background:${cols[i+1]}"></i></div>
+      <div class="l2"><span>BOSS ${i+1} · ${D.boss_subs[name] || ''}</span><span class="tnum">+${fmt$(reg)}/mo</span></div>
+    </div>`;
+  });
+  $('#bosses').innerHTML = html;
+  $('#stackrow').innerHTML = `<span>Stack: <b class="tnum" style="color:var(--ink)">${fmt$(stack)}</b></span>
+    <span>bleeding ≈ <b class="tnum" style="color:var(--ink)">${fmt$(bleed)}/mo</b></span>`;
+  const h = D.debts.find(x => x.name === 'HELOC');
+  $('#waiting').textContent = `Waiting outside: HELOC ${fmt$(h.bal)} (${h.rate}%) · dead bosses stay frozen at $0, never closed`;
+  $('#windfall').innerHTML = `<b style="color:var(--ink);font-weight:600">Next windfall play</b> — ${D.income.next_windfall_note}: shield to the line first, remainder hits ${D.bosses[0]}. The app shows the split; you move the money.`;
+}
+
+function renderProg(){
+  const t = timeline(), closes = LS.get('closes', {});
+  // 7 rings: last 6 days + today
+  let rings = '';
+  const cells = t.days.slice(-6).map(x => ({d:x.date, sc:x.score, col:x.state === 'G' ? 'var(--good)' : x.state === 'F' ? 'var(--accent)' : 'var(--crit)'}));
+  while (cells.length < 6) cells.unshift(null);
+  const tc = closes[todayStr()];
+  cells.push(tc ? {d:todayStr(), sc:scoreOf(tc), col:isGreenClose(tc) ? 'var(--good)' : 'var(--crit)'} : {d:todayStr(), sc:0, col:'var(--grid)'});
+  for (const c of cells)
+    rings += c ? `<div class="wr">${ring(c.sc, 'small', c.col)}<div class="d">${dow(c.d)}</div></div>`
+               : '<div class="wr">' + ring(0, 'small', 'var(--grid)') + '<div class="d">·</div></div>';
+  $('#rings').innerHTML = rings;
+  // sparkline
+  const S = DATA.cards_series, vals = S.map(x => x[1]);
+  const mn = Math.min(...vals), mx = Math.max(...vals);
+  const X = i => 14 + i*(272/(S.length-1)), Y = v => 12 + (mx-v)/(mx-mn||1)*58;
+  let pts = S.map((x,i) => X(i).toFixed(0)+','+Y(x[1]).toFixed(0)).join(' ');
+  const delta = vals[vals.length-1] - vals[0];
+  const MN = {'01':'Jan','02':'Feb','03':'Mar','04':'Apr','05':'May','06':'Jun','07':'Jul','08':'Aug','09':'Sep','10':'Oct','11':'Nov','12':'Dec'};
+  const mlab = m => MN[m.slice(5)];
+  $('#spark').innerHTML = `<div class="t"><span>${mlab(S[0][0])}–${mlab(S[S.length-1][0])} · statement balances</span>
+      <span class="${delta > 0 ? 'badtx' : 'goodtx'} tnum">${delta > 0 ? 'rebuilt +' : '−'}${fmt$(Math.abs(delta)).slice(1)}${delta > 0 ? '' : ' paid down'}</span></div>
+    <svg width="100%" height="82" viewBox="0 0 300 82" preserveAspectRatio="none">
+      <line x1="0" y1="76" x2="300" y2="76" stroke="var(--line)" stroke-width="1"/>
+      <polyline points="${pts}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round"/>
+      ${S.map((x,i) => `<circle cx="${X(i).toFixed(0)}" cy="${Y(x[1]).toFixed(0)}" r="3.5" fill="var(--accent)" stroke="var(--card)" stroke-width="2"/>`).join('')}
+    </svg>
+    <div class="x tnum">${S.map(x => `<span>${mlab(x[0])} $${(x[1]/1000).toFixed(1)}K</span>`).join('')}</div>`;
+  // ledger
+  let rows = '<tr><th>MO</th><th>CARDS</th><th>Δ</th><th>CUSHION</th></tr>';
+  const CS = DATA.cushion_series;
+  for (let i = S.length-1; i >= 0; i--){
+    const [m, v] = S[i];
+    const prev = i > 0 ? S[i-1][1] : null;
+    const cu = (CS.find(x => x[0] === m) || [0,null])[1];
+    const dl = prev === null ? '' : v - prev;
+    rows += `<tr><td class="k">${mlab(m)}</td><td>${Math.round(v).toLocaleString()}</td>
+      <td class="${dl === '' ? '' : dl > 0 ? 'badtx' : 'goodtx'}">${dl === '' ? '—' : (dl > 0 ? '+' : '−') + Math.round(Math.abs(dl)).toLocaleString()}</td>
+      <td>${cu === null ? '—' : Math.round(cu).toLocaleString()}</td></tr>`;
+  }
+  $('#ledger').innerHTML = rows;
+}
+
+function renderAll(){ renderToday(); renderQuest(); renderProg(); }
+
+/* ---------- sheets ---------- */
+function openSheet(id){ $('#scrim').classList.add('on'); $(id).classList.add('on'); }
+function closeSheets(){ $('#scrim').classList.remove('on');
+  document.querySelectorAll('.sheet').forEach(s => s.classList.remove('on')); }
+$('#scrim').addEventListener('click', closeSheets);
+
+/* close-the-day */
+let splurgeOn = false;
+function updPreview(){
+  const raw = parseFloat(($('#amt').value || '').replace(/[$,\s]/g, ''));
+  const el = $('#closepreview');
+  if (isNaN(raw)){ el.style.display = 'none'; return; }
+  const c = {amt:raw, splurge:splurgeOn};
+  const g = isGreenClose(c), sc = scoreOf(c), dn = dailyNumber();
+  el.style.display = 'flex';
+  el.innerHTML = ring(sc, 'big', g ? 'var(--good)' : 'var(--crit)') +
+    `<div><div style="font-size:15px;font-weight:650">${g ? 'Green day' : 'Red day'}</div>
+     <div style="font-size:12.5px;color:var(--ink2);margin-top:2px">${c.splurge ? 'planned splurge' :
+       (raw <= dn ? fmt$(dn-raw)+' under' : fmt$(raw-dn)+' over')}</div></div>`;
+}
+$('#amt').addEventListener('input', updPreview);
+$('#splurge').addEventListener('click', () => { splurgeOn = !splurgeOn; $('#splurge').classList.toggle('on', splurgeOn); updPreview(); });
+$('#openclose').addEventListener('click', () => {
+  const tc = LS.get('closes', {})[todayStr()];
+  $('#closetitle').textContent = tc ? 'Edit today' : 'Close the day';
+  $('#amt').value = tc ? tc.amt : '';
+  splurgeOn = !!(tc && tc.splurge); $('#splurge').classList.toggle('on', splurgeOn);
+  updPreview(); openSheet('#sh-close');
+});
+$('#doclose').addEventListener('click', () => {
+  const raw = parseFloat(($('#amt').value || '').replace(/[$,\s]/g, ''));
+  if (isNaN(raw) || raw < 0) { $('#amt').focus(); return; }
+  const closes = LS.get('closes', {});
+  closes[todayStr()] = {amt:Math.round(raw*100)/100, splurge:splurgeOn};
+  LS.set('closes', closes);
+  closeSheets(); renderAll();
+});
+
+/* assumptions */
+function renderSim(){
+  const extra = LS.get('extra', 0), s = simPayoff(extra);
+  $('#ex-val').textContent = fmt$(extra);
+  $('#sim-date').textContent = s.label + ` (${Math.floor(s.months/12)}y${s.months%12}m)`;
+  $('#sim-int').textContent = fmt$(s.interest);
+  $('#simnote').textContent = DATA.sim.note;
+}
+$('#ex-up').addEventListener('click', () => { LS.set('extra', LS.get('extra', 0) + 100); renderSim(); renderToday(); });
+$('#ex-dn').addEventListener('click', () => { LS.set('extra', Math.max(0, LS.get('extra', 0) - 100)); renderSim(); renderToday(); });
+$('#countbtn').addEventListener('click', () => { renderSim(); openSheet('#sh-sim'); });
+$('#countbtn2').addEventListener('click', () => { renderSim(); openSheet('#sh-sim'); });
+
+/* settings */
+function renderSet(){
+  $('#dn-val').textContent = fmt$(dailyNumber());
+  $('#setnote').textContent = dailyIsProvisional()
+    ? 'Daily number is the placeholder — it gets computed from July–August statements.'
+    : 'Daily number set by you. It renegotiates as bosses die.';
+  $('#askpw').classList.toggle('on', !!LS.get('askpw', false));
+  $('#dataasof').textContent = 'Data: ' + DATA.asof + ' · built ' + DATA.built + ' · Comeback v0.1';
+}
+$('#dn-up').addEventListener('click', () => { LS.set('daily', dailyNumber() + 5); renderSet(); renderAll(); });
+$('#dn-dn').addEventListener('click', () => { LS.set('daily', Math.max(5, dailyNumber() - 5)); renderSet(); renderAll(); });
+$('#askpw').addEventListener('click', () => { const v = !LS.get('askpw', false); LS.set('askpw', v);
+  if (v) LS.del('pass'); renderSet(); });
+$('#forget').addEventListener('click', () => { LS.del('pass'); location.reload(); });
+$('#exportbtn').addEventListener('click', async () => {
+  const blob = JSON.stringify({closes:LS.get('closes', {}), daily:LS.get('daily', null), extra:LS.get('extra', 0)});
+  try { await navigator.clipboard.writeText(blob); $('#exportbtn').textContent = 'Copied ✓'; }
+  catch(e){ prompt('Copy this:', blob); }
+});
+$('#gear').addEventListener('click', () => { renderSet(); openSheet('#sh-set'); });
+
+/* tabs */
+document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('on', x === b));
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('on'));
+  $('#v-' + b.dataset.v).classList.add('on');
+  window.scrollTo(0, 0);
+}));
+
+/* ---------- boot ---------- */
+async function boot(){
+  let blob = null;
+  try {
+    const r = await fetch('data.enc', {cache:'no-cache'});
+    blob = await r.json();
+  } catch(e){
+    $('#boot').textContent = 'Can’t reach data.enc — check the connection and reload.';
+    return;
+  }
+  if (!(crypto && crypto.subtle)){
+    $('#boot').textContent = 'This browser can’t decrypt here (needs HTTPS).';
+    return;
+  }
+  const tryPass = async pass => {
+    try { DATA = await decryptBlob(blob, pass); return true; } catch(e){ return false; }
+  };
+  const saved = LS.get('askpw', false) ? null : LS.get('pass', null);
+  if (saved && await tryPass(saved)){ start(); return; }
+  $('#boot').style.display = 'none';
+  $('#gate').classList.add('on');
+  $('#unlock').addEventListener('click', async () => {
+    const p = $('#pw').value;
+    $('#gateerr').textContent = '';
+    if (await tryPass(p)){
+      if ($('#remember').classList.contains('on') && !LS.get('askpw', false)) LS.set('pass', p);
+      $('#gate').classList.remove('on'); start();
+    } else $('#gateerr').textContent = 'Not it. Try again.';
+  });
+  $('#pw').addEventListener('keydown', e => { if (e.key === 'Enter') $('#unlock').click(); });
+  $('#remember').addEventListener('click', () => $('#remember').classList.toggle('on'));
+}
+function start(){
+  $('#boot').style.display = 'none';
+  $('#app').style.display = 'flex';
+  renderAll();
+}
+boot();
+if ('serviceWorker' in navigator && location.protocol === 'https:')
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+</script>
+</body></html>
